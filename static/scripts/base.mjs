@@ -83,10 +83,18 @@ $(document).ready(function () {
     // If there are range filters in session storage, configure the sliders with the stored valus
     for (const [category, values] of Object.entries(rangeFilters)) {
       const slider = $(`.range-slider[data-col="${category}"]`);
+
+      if (slider.length === 0) {
+        console.warn("[EarXplore] Slider element not found, skip:", category);
+        continue;
+      }
       const max = slider.data("max");
       const min = slider.data("min");
 
-      // Recreate the slider with the stored configuartion
+      // ✅ 防止重复初始化（如果页面上已经有 noUiSlider 实例）
+      if (slider[0].noUiSlider) {
+        slider[0].noUiSlider.destroy();
+      }
       noUiSlider
         .create(slider[0], getSliderConfig(values, min, max))
         .on("change", function (values, handle) {

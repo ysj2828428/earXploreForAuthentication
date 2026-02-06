@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {# Meta Information #}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='favicon.png') }}">
+
+    {# Links #}
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/nouislider.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/base.css') }}" />
+    {% block styles %}{% endblock styles %}
+
+    {# Scripts #}
+    <script src="{{ url_for('static', filename='scripts/nouislider.js') }}"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.slim.min.js"
+      integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8="
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7" defer></script>
+
+    {% block head %}
+    <title>{% block title %} EarXplore - Earable Authentication Database {% endblock title %}</title>
+    {% endblock head %}
+  </head>
+
+  <body
+    data-data="{{ data }}"
+    data-abstracts="{{ abstracts }}"
+    data-titles="{{ titles }}"
+    data-filter-categories="{{ filter_categories }}"
+    data-parenthical-categories="{{ parenthical_columns }}"
+    data-explanations="{{ explanations }}"
+  >
+    {% if success_message %}
+    <div
+      class="alert alert-success alert-dismissible fade show position-fixed"
+      style="top: 20px; right: 50%; transform: translate(50%, 0); z-index: 9999; min-width: 300px;"
+      role="alert"
+      id="successAlert"
+    >
+      {{ success_message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <script>
+      setTimeout(function () {
+        const alert = document.getElementById("successAlert");
+        if (alert) {
+          const bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        }
+      }, 5000);
+
+      if (window.history.replaceState) {
+        const url = new URL(window.location);
+        url.searchParams.delete("success");
+        window.history.replaceState({}, document.title, url.toString());
+      }
+    </script>
+    {% endif %}
+
+    <div id="mask"></div>
+
+    <div class="left-section">
+      <header class="mb-3">
+        <nav data-current-view="{{ current_view }}">
+          <a href="https://open-earable.teco.edu/" target="_blank" id="open-earable-repo">
+            <img
+              id="open-earable-logo"
+              src="{{ url_for('static', filename='images/OE_Logo_black_RGB.png') }}"
+              alt="Open Earable Logo"
+              tabindex="-1"
+            />
+          </a>
+
+          <div id="earXplore-repo">
+            <a href="https://github.com/OpenEarable/earXplore/tree/master" target="_blank">
+              <h3>EarXplore</h3>
+              <span class="text-muted" style="color: #b89491 !important">Authentication</span>
+            </a>
+          </div>
+
+          <div class="link-section">
+            <a href="{{ url_for('auth_home') }}">
+              <div class="navbar-item" data-section="tableView">
+                <span class="navbar-text">Tabular Overview</span>
+                <img class="navbar-icon" src="{{ url_for('static', filename='images/table_chart_icon.svg') }}" alt="Table Icon" />
+              </div>
+            </a>
+
+            <a href="{{ url_for('auth_bar_chart') }}">
+              <div class="navbar-item" data-section="chartView">
+                <span class="navbar-text">Distribution Charts</span>
+                <img class="navbar-icon" src="{{ url_for('static', filename='images/bar_chart_icon.svg') }}" alt="Chart Icon" />
+              </div>
+            </a>
+
+            <a href="{{ url_for('auth_similarity') }}">
+              <div class="navbar-item" data-section="similarityView">
+                <span class="navbar-text">Study Similarity</span>
+                <img class="navbar-icon" src="{{ url_for('static', filename='images/similarity_icon.svg') }}" alt="Similarity Icon" />
+              </div>
+            </a>
+
+            <a href="{{ url_for('auth_timeline') }}">
+              <div class="navbar-item" data-section="timeView">
+                <span class="navbar-text">Study Timeline</span>
+                <img class="navbar-icon" src="{{ url_for('static', filename='images/timeline_icon.svg') }}" alt="Timeline Icon" />
+              </div>
+            </a>
+          </div>
+        </nav>
+
+        <div class="d-flex align-items-center" id="nav-r">
+          <a href="{{ url_for('switch_page', target='auth') }}">
+            <button class="add-study-button">
+              <span class="navbar-text"> Switch Dimension </span>
+              <img
+                src="{{ url_for('static', filename='images/filter-icon.svg')}}"
+                alt="Switch Dimension Icon"
+                class="navbar-icon"
+              />
+            </button>
+          </a>
+
+          <a href="{{ url_for('add_study') }}">
+            <button class="add-study-button">
+              <span class="navbar-text"> Add study or report mistake! </span>
+              <img src="{{ url_for('static', filename='images/add_study_icon.svg')}}" alt="Add Study Icon" class="navbar-icon" />
+            </button>
+          </a>
+
+          <a href="https://arxiv.org/abs/2507.20656" target="_blank">
+            <button class="add-study-button">
+              <span class="navbar-text"> EarXplore Paper </span>
+              <img src="{{ url_for('static', filename='images/paper_icon.svg')}}" alt="Paper Icon" class="navbar-icon" />
+            </button>
+          </a>
+        </div>
+      </header>
+
+      <main>
+        <div id="visualization-warning">
+          <img src="{{ url_for('static', filename='images/danger_icon.svg')}}" alt="Danger Icon" />
+          <span>Warning: This visualization is optimized for larger screens and may not display visually appealing on smaller devices.</span>
+        </div>
+
+        <div id="toggle-sidebar">
+          <button id="toggle-sidebar-btn">
+            Toggle Sidebar
+            <img
+              id="filter-icon"
+              src="{{ url_for('static', filename='images/filter-icon.svg')}}"
+              alt="Filter Icon"
+              class="navbar-icon"
+            />
+          </button>
+        </div>
+
+        {% block content %}{% endblock content %}
+      </main>
+    </div>
+
+    <aside id="sidebar">
+      <div class="sidebar-buttons">
+        <div class="d-flex gap-2 w-100 mt-3">
+          <button id="select-all-sidebar-button" class="select-button flex-fill">Select All</button>
+          <button id="deselect-all-sidebar-button" class="select-button flex-fill">Deselect All</button>
+        </div>
+
+        <button id="close-sidebar">
+          <img id="close-icon" src="{{ url_for('static', filename='images/close-icon.svg')}}" alt="Close Icon" />
+        </button>
+      </div>
+
+      {% for panel in sidebar_panels %}
+      <div class="panel" data-panel-value="{{ panel.value }}">
+        <div class="d-flex justify-content-between align-items-center">
+          <h3>{{ panel.value }}</h3>
+          {% if panel.select_deselect_buttons == True %}
+          <div class="button-container">
+            <button type="button" class="select-all-panel select-button" data-panel="{{ panel.value }}">Select All</button>
+            <button type="button" class="deselect-all-panel select-button" data-panel="{{ panel.value }}">Deselect All</button>
+          </div>
+          {% endif %}
+          {% if panel.value == "Advanced Filters" %}
+            {% if panel.initial_visibility == "none" %}
+            <button type="button" class="toggle-visibility-button" data-panel="{{ panel.value }}">Show</button>
+            {% else %}
+            <button type="button" class="toggle-visibility-button" data-panel="{{ panel.value }}">Hide</button>
+            {% endif %}
+          {% endif %}
+        </div>
+        <hr />
+
+        <div class="filters {{ 'hidden-filters' if panel.initial_visibility == 'none' }}">
+          {% for slider in panel.sliders %}
+          <div class="filter-group" data-col="{{ slider.value }}">
+            <strong>{{ slider.value.split('_')[-1] }}</strong>
+            {% if slider.explanation is not none %}
+            <span title="{{ slider.explanation }}" class="ms-1">
+              <img src="{{ url_for('static', filename='images/question-circle-fill.svg') }}" alt="Question Mark Icon within a circle" class="question-circle" />
+            </span>
+            {% endif %}
+            <br />
+            <div class="slider-container">
+              <div class="range-slider" data-col="{{ slider.value }}" data-min="{{ slider.min_value }}" data-max="{{ slider.max_value }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+
+          {% for category in panel.filters %}
+          <div class="filter-group mt-2 category" data-col="{{ category.value }}">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+              <div>
+                <strong>{{ category.value.split('_')[-1] }}</strong>
+                {% if category.explanation is not none %}
+                <img
+                  src="{{ url_for('static', filename='images/question-circle-fill.svg') }}"
+                  alt="Question Mark Icon within a circle"
+                  class="question-circle"
+                  title="{{ category.explanation }}"
+                />
+                {% endif %}
+              </div>
+
+              {% if category.select_deselect_all %}
+              <div class="d-flex justify-content-end gap-2">
+                {% if category.exclusive_filtering %}
+                <button type="button" class="select-button exclusive-filter" data-col="{{ category.value }}"></button>
+                {% endif %}
+                <button type="button" class="select-button select-all" data-col="{{ category.value }}">Select All</button>
+                <button type="button" class="select-button deselect-all" data-col="{{ category.value }}">Deselect All</button>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="d-flex flex-wrap flex-row gap-1">
+              {% for value in category.unique_values %}
+              <div class="checkbox-wrapper">
+                <input
+                  type="checkbox"
+                  class="value-filter form-check-input"
+                  name="{{ value }}"
+                  value="{{ value }}"
+                  id="{{ value | replace(' ', '€') }}--{{ category.value | replace(' ', '€') }}"
+                />
+                <label for="{{ value | replace(' ', '€') }}--{{ category.value | replace(' ', '€') }}">{{ value }}</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </aside>
+
+    <div class="modal fade" id="study-info-modal" tabindex="-1" aria-labelledby="studyInfo" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="study-info-header">Study Information Header</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="study-info-modal-body"></div>
+          <div class="modal-footer" id="study-info-modal-footer">
+            <button class="btn btn-secondary" id="similar-studies-btn">
+              <a href="{{ url_for('auth_similarity') }}">Find Similar Studies</a>
+            </button>
+            <button type="button" id="study-link-btn">
+              <a id="study-link" target="_blank">Open Paper</a>
+            </button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='scripts/dataUtility.mjs') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='scripts/d3DrawingUtility.mjs') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='scripts/base.mjs') }}"></script>
+
+    {% block scripts %}{% endblock scripts %}
+  </body>
+</html>

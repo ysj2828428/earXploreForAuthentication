@@ -1,0 +1,38 @@
+Column,Explanation
+Main Author,First or corresponding author of the study.
+Year,Year in which the study was published.
+Type of Approach,"Category of the authentication approach (e.g., acoustic, physiological, motion-based)."
+No Additional Sensing,Whether authentication is performed without requiring additional sensors beyond standard earable hardware.
+Earphone Type,Type of earable or earphone device used in the study.
+Development Stage,"Maturity level of the system, such as concept, prototype, or deployed system."
+On-Device Processing,Whether authentication processing is performed locally on the device.
+Active Interaction,Whether explicit user interaction is required for authentication.
+Learning Method,Machine learning or signal processing method used for authentication.
+Number of Authentication Stages,Number of sequential stages involved in the authentication process.
+Continuous / One-Time,Whether authentication is continuous or performed only once.
+Accuracy (BAC),Balanced Accuracy (BAC) reported for the authentication system.
+Discreetness of Authentication,How unobtrusive the authentication process is to the user.
+Robustness of Authentication,"System robustness against noise, movement, or environmental changes."
+Resistance against Attacks,Ability of the authentication method to resist spoofing or impersonation attacks.
+Registration Time,Description of this attribute in the context of earable-based authentication research.
+Authentication Time,Description of this attribute in the context of earable-based authentication research.
+Accuracy Evaluations,Whether and how authentication accuracy was evaluated.
+Usability Evaluations,Whether usability aspects were evaluated in the study.
+Feasibility Evaluations,Evaluation of the feasibility of deploying the system in real-world scenarios.
+Responsiveness Evaluations,Assessment of authentication latency or responsiveness.
+Noise Level Evaluations,Evaluation of system performance under different noise levels.
+Moving State Evaluations,Evaluation under different user motion states.
+Wearing Angle Evaluations,Evaluation under different wearing angles or positions.
+Evaluations of Different Settings,Evaluation across different experimental or usage settings.
+Threat Models Evaluations,Whether and how threat models were evaluated experimentally.
+Motivations,Primary motivation or application scenario for the authentication method.
+Keywords,Author-provided keywords describing the study.
+Abstract,Abstract summarizing the study.
+ID,Unique identifier for each study in the EarXplore authentication database.
+Study Link,URL or DOI link to the original publication.
+Title,Title of the study.
+Authors,List of authors of the study.
+DONE,Internal flag indicating whether the study entry has been reviewed or finalized.
+Venue,Publication venue where the study appeared.
+BAC,Reported balanced accuracy metric.
+Sensors,"Sensors used for authentication (e.g., microphone, accelerometer, PPG)."

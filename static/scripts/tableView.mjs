@@ -1,5 +1,9 @@
 import { data, showStudyModal, filterData } from "./dataUtility.mjs";
 
+const isAuth = window.location.pathname.startsWith("/auth");
+const FILTERS_KEY = isAuth ? "filters_auth" : "filters";
+
+
 $(document).ready(function () {
   const table = $("#table");
   const categories = [
@@ -155,30 +159,34 @@ $(document).ready(function () {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
-  showTableData(JSON.parse(window.sessionStorage.getItem("filters")));
+  showTableData(JSON.parse(window.sessionStorage.getItem(FILTERS_KEY)));
 
   // add event listener to each checkbox to filter the table
   $(".form-check-input").on("change", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     showTableData(filters);
   });
 
   // Add event listener to each value filter to filter the table
   $(".value-filter").on("change", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     showTableData(filters);
   });
 
   // Add event listener to exclusive filters button to filter the table
   $(".exclusive-filter").on("click", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     showTableData(filters);
   });
 
   // Add event listener to each range slider to filter the table
   $(".range-slider").each(function () {
+    if (!this.noUiSlider) {
+      console.warn("[EarXplore] noUiSlider not initialized for:", this);
+      return; 
+    }
     this.noUiSlider.on("end", function () {
-      const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+      const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
       showTableData(filters);
     });
   });
@@ -192,7 +200,7 @@ $(document).ready(function () {
   // Use event delegation to handle clicks on sorting headers
   $("#table").on("click", ".sortable", function () {
     const sortCategory = $(this).data("category");
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
 
     // Toggle the sorting order
     categoryOrder[sortCategory] =
@@ -208,7 +216,7 @@ $(document).ready(function () {
 
   // Add event listener to the download filtered dataset button
   $("#downloadFilteredCsv").on("click", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     const activeData = filterData(filters);
     downloadCsv(activeData, "filtered_data.csv");
   });

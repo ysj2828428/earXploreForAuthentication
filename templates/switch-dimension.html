@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>earXplore - Switch Dimension</title>
+
+  <!-- Bootstrap -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+    crossorigin="anonymous"
+  />
+
+  <!-- Reuse add_study styling -->
+  <link
+    rel="stylesheet"
+    type="text/css"
+    href="{{ url_for('static', filename='styles/add_study.css') }}"
+  />
+</head>
+
+<body>
+  <div class="container" style="max-width: 960px;">
+    <!-- Header -->
+    <div class="header">
+      <a href="https://open-earable.teco.edu/" target="_blank" rel="noreferrer">
+        <img
+          src="{{ url_for('static', filename='images/OE_Logo_black_RGB.png') }}"
+          alt="Open Earable Logo"
+        />
+      </a>
+      <div>
+        <h2 class="m-0">
+          <a
+            href="https://github.com/OpenEarable/earXplore/tree/master"
+            target="_blank"
+            rel="noreferrer"
+            style="text-decoration: none; color: inherit;"
+          >
+            EarXplore
+          </a>
+        </h2>
+
+        {% set label = "Authentication" if target in ["auth", "authentication"] else "Interaction" %}
+        <span class="text-muted" style="color: #B89491 !important;">
+          {{ label }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Back link -->
+    {% if target in ["auth", "authentication"] %}
+      <a href="{{ url_for('auth_home') }}" class="home-link mb-4">
+        Back to EarXplore
+      </a>
+    {% else %}
+      <a href="{{ url_for('home') }}" class="home-link mb-4">
+        Back to EarXplore
+      </a>
+    {% endif %}
+
+    <!-- Title -->
+    <div class="mb-4">
+      <h4 class="mb-1">Switch Dimension</h4>
+      <p class="text-muted mb-0">
+        Choose which database you want to explore.
+      </p>
+    </div>
+
+    <!-- Cards -->
+    <div class="option-card-container">
+      <div class="col-md-6">
+        <div class="option-card h-100">
+          <h4>Interaction</h4>
+          <p>
+            Explore studies on earable interaction techniques, sensing methods,
+            and application scenarios.
+          </p>
+          <button
+            class="btn btn-warning"
+            data-dim="interaction"
+          >
+            Go to Interaction
+          </button>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="option-card h-100">
+          <h4>Authentication</h4>
+          <p>
+            Explore studies on earable authentication methods, robustness,
+            security, and evaluations.
+          </p>
+          <button
+            class="btn btn-warning"
+            data-dim="auth"
+          >
+            Go to Authentication
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Card navigation
+    document.querySelectorAll("button[data-dim]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const dim = btn.getAttribute("data-dim");
+        window.location.href = `/switch/go?target=${encodeURIComponent(dim)}`;
+      });
+    });
+  </script>
+</body>
+</html>

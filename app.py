@@ -93,7 +93,89 @@ def filter_categories(data):
     # Filter out categories that should not be filtered for
     return [category for category in data[0].keys() if category not in EXCLUDED_SIDEBAR_CATEGORIES]
 
+def get_config(config_path: str) -> dict:
+    with open(config_path, "r", encoding="utf-8-sig") as f:
+        config = yaml.safe_load(f) or {}
+    # 默认值
+    return {
+        "database_path": config.get("database-path", "data.csv"),
+        "explanations_path": config.get("explanations-path", "explanations.csv"),
+        "similarity_abstract_path": config.get("similarity-abstract-path", "abstract_similarity_datasets/normalized_abstract_similarity.csv"),
+        "similarity_database_path": config.get("similarity-database-path", "database_similarity_datasets/normalized_database_similarity.csv"),
+        "citation_matrix_path": config.get("citation-matrix-path", "interconnections_datasets/citation_matrix.csv"),
+        "coauthor_matrix_path": config.get("coauthor-matrix-path", "interconnections_datasets/coauthor_matrix.csv"),
+
+        # 下面这些就是你原来 load_data() 里设置的全局 sidebar 配置
+        "excluded_sidebar_categories": config.get("excluded-sidebar-categories", []),
+        "advanced_sidebar_categories": config.get("advanced-sidebar-categories", []),
+        "slider_categories": config.get("slider-categories", []),
+        "select_deselect_all_categories": config.get("select-deselect-all-categories", []),
+        "exclusive_filtering_categories": config.get("exclusive-filtering-categories", []),
+        "parenthical_columns": config.get("parenthical-columns", []),
+        "select_deselect_all_panels": config.get("select-deselect-all-panels", []),
+        "initially_hidden_panels": config.get("initially-hidden-panels", []),
+        "start_category_filters": ["INFO"] + config.get("start-category-filters", []),
+        "special_format_explanations": config.get("special-format-explanations", []),
+    }
+
+def apply_config_to_globals(cfg: dict):
+    global EXCLUDED_SIDEBAR_CATEGORIES, ADVANCED_SIDEBAR_CATEGORIES, SLIDER_CATEGORIES
+    global SELECT_DESELECT_ALL_CATEGORIES, EXCLUSIVE_FILTERING_CATEGORIES
+    global PARENTHICAL_COLUMNS, SELECT_DESELECT_ALL_PANELS, INITIALLY_HIDDEN_PANELS
+    global START_CATEGORY_FILTERS, SPECIAL_FORMAT_EXPLANATIONS
+
+    EXCLUDED_SIDEBAR_CATEGORIES = cfg["excluded_sidebar_categories"]
+    ADVANCED_SIDEBAR_CATEGORIES = cfg["advanced_sidebar_categories"]
+    SLIDER_CATEGORIES = cfg["slider_categories"]
+    SELECT_DESELECT_ALL_CATEGORIES = cfg["select_deselect_all_categories"]
+    EXCLUSIVE_FILTERING_CATEGORIES = cfg["exclusive_filtering_categories"]
+    PARENTHICAL_COLUMNS = cfg["parenthical_columns"]
+    SELECT_DESELECT_ALL_PANELS = cfg["select_deselect_all_panels"]
+    INITIALLY_HIDDEN_PANELS = cfg["initially_hidden_panels"]
+    START_CATEGORY_FILTERS = json.dumps(cfg["start_category_filters"])
+    SPECIAL_FORMAT_EXPLANATIONS = cfg["special_format_explanations"]
+
+# --- Dimension registry ---
+DIMENSIONS = {
+    "interaction": {
+        "base_path": "",  # url 前缀
+        "config_yaml": "earXplore_interaction.yaml",
+        "bar_template": "bar-chart.html",
+        "table_template": "table-view.html",
+        "similarity_template": "similarity.html",
+        "timeline_template": "timeline.html",
+    },
+    "authentication": {
+        "base_path": "/auth",
+        "config_yaml": "earXplore_authentication.yaml",
+        # 如果你 auth 的 bar-chart 用单独模板，就填 bar-chart-auth.html；否则也可以复用 bar-chart.html
+        "bar_template": "bar-chart-auth.html",
+        "table_template": "table-view.html",
+        "similarity_template": "similarity.html",
+        "timeline_template": "timeline.html",
+    },
+}
+
+def resolve_config_path(dimension: str) -> str:
+    if dimension not in DIMENSIONS:
+        dimension = "interaction"
+    return os.path.join(os.path.dirname(__file__), "configs", DIMENSIONS[dimension]["config_yaml"])
+
+def load_dimension_data(dimension: str):
+    """
+    统一入口：根据 dimension 选 YAML -> 刷新全局 sidebar 配置 -> load_data -> 返回 data/explanations/db_path
+    """
+    config_path = resolve_config_path(dimension)
+    cfg = get_config(config_path)
+    apply_config_to_globals(cfg)  # ✅ 你要求可以引入它
+
+    data, explanations = load_data(config_path=config_path)
+    return data, explanations, cfg["database_path"], cfg
+
+
+
 def load_data(config_path):
+    '''
     try:
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
@@ -115,6 +197,18 @@ def load_data(config_path):
     INITIALLY_HIDDEN_PANELS = config.get("initially-hidden-panels", [])
     START_CATEGORY_FILTERS = json.dumps(["INFO"] + config.get("start-category-filters", []))
     SPECIAL_FORMAT_EXPLANATIONS = config.get("special-format-explanations", [])
+    '''
+    try:
+        cfg = get_config(config_path)
+    except FileNotFoundError:
+        return f"Configuration file {config_path} not found"
+    except yaml.YAMLError as e:
+        return f"Error parsing configuration file {config_path}: {e}"
+
+    apply_config_to_globals(cfg)
+
+    database_path = cfg["database_path"]
+    explanations_path = cfg["explanations_path"]
 
     # Load data from CSV file into data variable
     try:
@@ -156,7 +250,8 @@ def load_data(config_path):
 
     return data, explanations
 
-def load_abstracts():
+def load_abstracts(database_path: str):
+    '''
     try:
         csv_path = os.path.join(os.path.dirname(__file__), "data.csv")
         df = pd.read_csv(csv_path, usecols=["Abstract", "ID"])  # Load only the Abstract column
@@ -171,8 +266,14 @@ def load_abstracts():
         return f"Error loading data.csv: {e}"
     
     return abstracts
+    '''
+    csv_path = os.path.join(os.path.dirname(__file__), database_path)
+    df = pd.read_csv(csv_path, usecols=["Abstract", "ID"])
+    df = df.fillna('N/A').replace('nan', 'N/A')
+    return df.to_dict(orient="records")
 
-def load_titles():
+def load_titles(database_path: str):
+    '''
     try:
         csv_path = os.path.join(os.path.dirname(__file__), "data.csv")
         df = pd.read_csv(csv_path, usecols=["Title", "ID"])  # Load only the Title column
@@ -187,6 +288,11 @@ def load_titles():
         return f"Error loading data.csv: {e}"
     
     return titles
+    '''
+    csv_path = os.path.join(os.path.dirname(__file__), database_path)
+    df = pd.read_csv(csv_path, usecols=["Title", "ID"])
+    df = df.fillna('N/A').replace('nan', 'N/A')
+    return df.to_dict(orient="records")
 
 def additional_data():
     try:
@@ -253,8 +359,8 @@ def generate_sidebar_panels(data, explanations):
             unique_values = set()
             for row in data:
               # some cells contain multiple values separated by commas
-              cell_values = row[col].split(",")
-              for value in cell_values:
+                cell_values = row[col].split(",")
+                for value in cell_values:
                   # trim values
                   trimmed_value = value.strip()
 
@@ -387,6 +493,8 @@ def home():
     
     if not isinstance(explanations, dict):
         return render_template("error.html", error=explanations), 500
+
+    db_path = get_config(config_path)["database_path"]
     
     sidebar_panels = generate_sidebar_panels(data, explanations)
 
@@ -395,7 +503,46 @@ def home():
     if success_message:
         print(f"Success message detected: {success_message}")
 
-    return render_template("table-view.html", current_view="tableView", data=data, sidebar_panels=sidebar_panels, explanations=json.dumps(explanations), abstracts=json.dumps(load_abstracts()), titles=json.dumps(load_titles()), parenthical_columns=json.dumps(PARENTHICAL_COLUMNS), filter_categories=json.dumps(filter_categories(data)), start_categories=START_CATEGORY_FILTERS, success_message=success_message)
+    return render_template("table-view.html",
+        current_view="tableView",
+        data=data, 
+        sidebar_panels=sidebar_panels, 
+        explanations=json.dumps(explanations), 
+        abstracts=json.dumps(load_abstracts(db_path)), 
+        titles=json.dumps(load_titles(db_path)), 
+        parenthical_columns=json.dumps(PARENTHICAL_COLUMNS), 
+        filter_categories=json.dumps(filter_categories(data)), 
+        start_categories=START_CATEGORY_FILTERS, 
+        success_message=success_message)
+
+@app.get("/auth")
+def auth_home():
+    config_path = os.path.join(os.path.dirname(__file__), "configs", "earXplore_authentication.yaml")
+
+    data, explanations = load_data(config_path=config_path)
+    if not isinstance(data, list):
+        return render_template("error.html", error=data), 500
+    if not isinstance(explanations, dict):
+        return render_template("error.html", error=explanations), 500
+
+    db_path = get_config(config_path)["database_path"]
+
+    sidebar_panels = generate_sidebar_panels(data, explanations)
+
+    return render_template(
+        "table-view-auth.html",
+        current_view="tableView",
+        data=data,
+        sidebar_panels=sidebar_panels,
+        explanations=json.dumps(explanations),
+        abstracts=json.dumps(load_abstracts(db_path)),  
+        titles=json.dumps(load_titles(db_path)),        
+        parenthical_columns=json.dumps(PARENTHICAL_COLUMNS),
+        filter_categories=json.dumps(filter_categories(data)),
+        start_categories=START_CATEGORY_FILTERS,
+        success_message=request.args.get("success"),
+    )
+
 
 @app.get("/bar-chart")
 def bar_chart():
@@ -406,6 +553,8 @@ def bar_chart():
     
     if not isinstance(explanations, dict):
         return render_template("error.html", error=explanations), 500
+
+    db_path = get_config(config_path)["database_path"]
     
     sidebar_panels = generate_sidebar_panels(data, explanations)
 
@@ -415,15 +564,67 @@ def bar_chart():
             continue
         categories.append(category)
 
-    abstracts = load_abstracts()
+    #abstracts = load_abstracts()
+    abstracts = load_abstracts(db_path)
     if not isinstance(abstracts, list):
         return render_template("error.html", error=abstracts), 500
     
-    titles = load_titles()
+    #titles = load_titles()
+    titles = load_titles(db_path)
     if not isinstance(titles, list):
         return render_template("error.html", error=titles), 500
 
-    return render_template("bar-chart.html", current_view="chartView", data=data, sidebar_panels=sidebar_panels, explanations=json.dumps(explanations), abstracts=json.dumps(load_abstracts()), titles=json.dumps(load_titles()), parenthical_columns=json.dumps(PARENTHICAL_COLUMNS), filter_categories=json.dumps(filter_categories(data)), start_categories=START_CATEGORY_FILTERS,)
+    return render_template("bar-chart.html", 
+        current_view="chartView", data=data, 
+        sidebar_panels=sidebar_panels, 
+        explanations=json.dumps(explanations), 
+        abstracts=json.dumps(load_abstracts(db_path)), 
+        titles=json.dumps(load_titles(db_path)), 
+        parenthical_columns=json.dumps(PARENTHICAL_COLUMNS), 
+        filter_categories=json.dumps(filter_categories(data)),
+         start_categories=START_CATEGORY_FILTERS,)
+
+@app.get("/auth/bar-chart")
+def auth_bar_chart():
+    config_path = os.path.join(os.path.dirname(__file__), "configs", "earXplore_authentication.yaml")
+
+    data, explanations = load_data(config_path=config_path)
+    if not isinstance(data, list):
+        return render_template("error.html", error=data), 500
+    if not isinstance(explanations, dict):
+        return render_template("error.html", error=explanations), 500
+
+    db_path = get_config(config_path)["database_path"]  
+
+    sidebar_panels = generate_sidebar_panels(data, explanations)
+
+    categories = []
+    for category in data[0].keys():
+        if category in EXCLUDED_SIDEBAR_CATEGORIES:
+            continue
+        categories.append(category)
+
+    abstracts = load_abstracts(db_path)  
+    if not isinstance(abstracts, list):
+        return render_template("error.html", error=abstracts), 500
+
+    titles = load_titles(db_path)  
+    if not isinstance(titles, list):
+        return render_template("error.html", error=titles), 500
+
+    return render_template(
+        "bar-chart-auth.html",
+        current_view="chartView",
+        data=data,
+        sidebar_panels=sidebar_panels,
+        explanations=json.dumps(explanations),
+        abstracts=json.dumps(abstracts),
+        titles=json.dumps(titles),
+        parenthical_columns=json.dumps(PARENTHICAL_COLUMNS),
+        filter_categories=json.dumps(filter_categories(data)),
+        start_categories=START_CATEGORY_FILTERS,
+    )
+
 
 @app.get("/similarity")
 def similarity():
@@ -434,6 +635,8 @@ def similarity():
     
     if not isinstance(explanations, dict):
         return render_template("error.html", error=explanations), 500
+
+    db_path = get_config(config_path)["database_path"]
     
     sidebar_panels = generate_sidebar_panels(data, explanations)
 
@@ -443,7 +646,51 @@ def similarity():
     
     excluded_categories = EXCLUDED_SIDEBAR_CATEGORIES + ADVANCED_SIDEBAR_CATEGORIES + ["Year"]
 
-    return render_template("similarity.html", current_view="similarityView", data=data, sidebar_panels=sidebar_panels, explanations=explanations, abstracts=json.dumps(load_abstracts()), titles=json.dumps(load_titles()), parenthical_columns=json.dumps(PARENTHICAL_COLUMNS), filter_categories=json.dumps(filter_categories(data)), similarity_data=json.dumps(similarity_data), excluded_categories=json.dumps(excluded_categories))
+    return render_template("similarity.html", 
+        current_view="similarityView", 
+        data=data, sidebar_panels=sidebar_panels, 
+        explanations=explanations, 
+        abstracts=json.dumps(load_abstracts(db_path)), 
+        titles=json.dumps(load_titles(db_path)), 
+        parenthical_columns=json.dumps(PARENTHICAL_COLUMNS), 
+        filter_categories=json.dumps(filter_categories(data)), 
+        similarity_data=json.dumps(similarity_data), 
+        excluded_categories=json.dumps(excluded_categories))
+
+@app.get("/auth/similarity")
+def auth_similarity():
+    config_path = os.path.join(os.path.dirname(__file__), "configs", "earXplore_authentication.yaml")
+
+    data, explanations = load_data(config_path=config_path)
+    if not isinstance(data, list):
+        return render_template("error.html", error=data), 500
+    if not isinstance(explanations, dict):
+        return render_template("error.html", error=explanations), 500
+
+    db_path = get_config(config_path)["database_path"] 
+
+    sidebar_panels = generate_sidebar_panels(data, explanations)
+
+    similarity_data = load_similarity_data()
+    if not isinstance(similarity_data, dict):
+        return render_template("error.html", error=similarity_data), 500
+
+    excluded_categories = EXCLUDED_SIDEBAR_CATEGORIES + ADVANCED_SIDEBAR_CATEGORIES + ["Year"]
+
+    return render_template(
+        "similarity-auth.html",
+        current_view="similarityView",
+        data=data,
+        sidebar_panels=sidebar_panels,
+        explanations=explanations,
+        abstracts=json.dumps(load_abstracts(db_path)),  
+        titles=json.dumps(load_titles(db_path)),        
+        parenthical_columns=json.dumps(PARENTHICAL_COLUMNS),
+        filter_categories=json.dumps(filter_categories(data)),
+        similarity_data=json.dumps(similarity_data),
+        excluded_categories=json.dumps(excluded_categories),
+    )
+
 
 @app.get("/timeline")
 def timeline():
@@ -455,6 +702,8 @@ def timeline():
     if not isinstance(explanations, dict):
         return render_template("error.html", error=explanations), 500
     
+    db_path = get_config(config_path)["database_path"]
+
     sidebar_panels = generate_sidebar_panels(data, explanations)
 
     categories = []
@@ -466,14 +715,78 @@ def timeline():
     citation_matrix, coauthor_matrix = load_citation_data()
     excluded_categories = EXCLUDED_SIDEBAR_CATEGORIES + ADVANCED_SIDEBAR_CATEGORIES + ["Year"]
 
-    return render_template("timeline.html", current_view="timeView", data=data, sidebar_panels=sidebar_panels, explanations=explanations, abstracts=json.dumps(load_abstracts()), titles=json.dumps(load_titles()), parenthical_columns=json.dumps(PARENTHICAL_COLUMNS), filter_categories=json.dumps(filter_categories(data)), citation_matrix=json.dumps(citation_matrix), coauthor_matrix=json.dumps(coauthor_matrix), excluded_categories=json.dumps(excluded_categories))
+    return render_template("timeline.html", 
+        current_view="timeView", 
+        data=data, sidebar_panels=sidebar_panels, 
+        explanations=explanations, 
+        abstracts=json.dumps(load_abstracts(db_path)), 
+        titles=json.dumps(load_titles(db_path)), 
+        parenthical_columns=json.dumps(PARENTHICAL_COLUMNS), 
+        filter_categories=json.dumps(filter_categories(data)), 
+        citation_matrix=json.dumps(citation_matrix), 
+        coauthor_matrix=json.dumps(coauthor_matrix), 
+        excluded_categories=json.dumps(excluded_categories))
+
+@app.get("/auth/timeline")
+def auth_timeline():
+    config_path = os.path.join(os.path.dirname(__file__), "configs", "earXplore_authentication.yaml")
+
+    data, explanations = load_data(config_path=config_path)
+    if not isinstance(data, list):
+        return render_template("error.html", error=data), 500
+    if not isinstance(explanations, dict):
+        return render_template("error.html", error=explanations), 500
+
+    db_path = get_config(config_path)["database_path"]  
+
+    sidebar_panels = generate_sidebar_panels(data, explanations)
+
+    citation_matrix, coauthor_matrix = load_citation_data()
+    excluded_categories = EXCLUDED_SIDEBAR_CATEGORIES + ADVANCED_SIDEBAR_CATEGORIES + ["Year"]
+
+    return render_template(
+        "timeline-auth.html",
+        current_view="timeView",
+        data=data,
+        sidebar_panels=sidebar_panels,
+        explanations=explanations,
+        abstracts=json.dumps(load_abstracts(db_path)),  
+        titles=json.dumps(load_titles(db_path)),        
+        parenthical_columns=json.dumps(PARENTHICAL_COLUMNS),
+        filter_categories=json.dumps(filter_categories(data)),
+        citation_matrix=json.dumps(citation_matrix),
+        coauthor_matrix=json.dumps(coauthor_matrix),
+        excluded_categories=json.dumps(excluded_categories),
+    )
+
+
+@app.get("/switch")
+def switch_page():
+    target = request.args.get("target", "interaction")  # 默认显示 interaction
+    return render_template(
+        "switch-dimension.html",
+        target=target,
+        dimensions=list(DIMENSIONS.keys()),
+    )
+
+@app.get("/switch/go")
+def switch_go():
+    target = request.args.get("target", "interaction")
+    if target == "auth" or target == "authentication":
+        return redirect("/auth")
+    return redirect("/")
 
 @app.get('/add_study')
 def add_study():
     try:
-        # Load the data
-        csv_path = os.path.join(os.path.dirname(__file__), "data.csv")
-        df = pd.read_csv(csv_path)
+        mode = request.args.get("mode", "interaction")
+        yaml_name = "earXplore_authentication.yaml" if mode == "auth" else "earXplore_interaction.yaml"
+        config_path = os.path.join(os.path.dirname(__file__), "configs", yaml_name)
+
+        cfg = get_config(config_path)
+        apply_config_to_globals(cfg)
+
+        df = pd.read_csv(os.path.join(os.path.dirname(__file__), cfg["database_path"]))
         
         # Extract categories and their options for the form
         form_categories = {}
@@ -728,6 +1041,6 @@ def submit_mistake():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
-    
+        
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=888)

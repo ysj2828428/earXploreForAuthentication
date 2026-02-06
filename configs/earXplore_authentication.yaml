@@ -1,0 +1,63 @@
+database-name: earXplore_authentication
+database-path: authentication_fixed.csv
+explanations-path: explanations_authentication.csv
+
+excluded-sidebar-categories:
+  - ID
+  - Abstract
+  - Study Link
+  - Title
+  - Authors
+  - DONE
+
+advanced-sidebar-categories:
+  - Keywords
+  - Main Author
+  - Venue
+  - Development Stage
+  - Resistance against Attacks
+  - Threat Models Evaluations
+  - Noise Level Evaluations
+  - Moving State Evaluations
+  - Wearing Angle Evaluations
+  - Evaluations of Different Settings
+  - Accuracy Evaluations
+  - Usability Evaluations
+  - Feasibility Evaluations
+  - Responsiveness Evaluations
+
+slider-categories:
+  - Year
+  - Number of Authentication Stages
+
+select-deselect-all-categories:
+  - Type of Approach
+  - Learning Method
+  - Earphone Type
+  - Sensors
+  - Motivations
+  - Keywords
+  - Venue
+
+exclusive-filtering-categories:
+  - No Additional Sensing
+  - On-Device Processing
+  - Active Interaction
+
+select-deselect-all-panels: []
+
+initially-hidden-panels:
+  - Advanced Filters
+
+parenthical-columns: []
+
+start-category-filters:
+  - Main Author
+  - Year
+  - Type of Approach
+  - Learning Method
+  - Sensors
+  - Continuous / One-Time
+  - Accuracy (BAC)
+
+special-format-explanations: []
