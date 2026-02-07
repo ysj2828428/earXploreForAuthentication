@@ -105,7 +105,6 @@ def get_config(config_path: str) -> dict:
         "citation_matrix_path": config.get("citation-matrix-path", "interconnections_datasets/citation_matrix.csv"),
         "coauthor_matrix_path": config.get("coauthor-matrix-path", "interconnections_datasets/coauthor_matrix.csv"),
 
-        # 下面这些就是你原来 load_data() 里设置的全局 sidebar 配置
         "excluded_sidebar_categories": config.get("excluded-sidebar-categories", []),
         "advanced_sidebar_categories": config.get("advanced-sidebar-categories", []),
         "slider_categories": config.get("slider-categories", []),
@@ -762,7 +761,7 @@ def auth_timeline():
 
 @app.get("/switch")
 def switch_page():
-    target = request.args.get("target", "interaction")  # 默认显示 interaction
+    target = request.args.get("target", "interaction")  
     return render_template(
         "switch-dimension.html",
         target=target,

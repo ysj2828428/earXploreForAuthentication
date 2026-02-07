@@ -1,5 +1,7 @@
 import { convertToID, updateFilters, processQuery } from "./dataUtility.mjs";
 
+const isAuth = window.location.pathname.startsWith("/auth");
+const FILTERS_KEY = isAuth ? "filters_auth" : "filters";
 
 
 $(document).ready(function () {
@@ -23,7 +25,7 @@ $(document).ready(function () {
   */
 
   // Load the current value filters from the session storage
-  let filters = JSON.parse(window.sessionStorage.getItem("filters")) || null;
+  let filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY)) || null;
   if (!filters) {
     // If there isnt a filter object in session storage, create a new one
     filters = {};
@@ -33,6 +35,11 @@ $(document).ready(function () {
   let valueFilters = filters.valueFilters || null;
   let rangeFilters = filters.rangeFilters || null;
   let exclusiveFilters = filters.exclusiveFilters || null;
+  if (!exclusiveFilters) {
+    exclusiveFilters = [];
+    filters.exclusiveFilters = exclusiveFilters;
+    updateFilters(filters);
+  }
 
   // If there are no value filters in session storage, meaning user is visiting for the first time, default to all value filters being selected
   if (!valueFilters) {
@@ -68,7 +75,7 @@ $(document).ready(function () {
       noUiSlider
         .create(this, getSliderConfig([min, max], min, max))
         .on("change", function (values, handle) {
-          const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+          const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
           filters.rangeFilters[category] = values;
           updateFilters(filters);
         });
@@ -86,19 +93,19 @@ $(document).ready(function () {
 
       if (slider.length === 0) {
         console.warn("[EarXplore] Slider element not found, skip:", category);
+        delete rangeFilters[category];
         continue;
       }
       const max = slider.data("max");
       const min = slider.data("min");
 
-      // ✅ 防止重复初始化（如果页面上已经有 noUiSlider 实例）
       if (slider[0].noUiSlider) {
         slider[0].noUiSlider.destroy();
       }
       noUiSlider
         .create(slider[0], getSliderConfig(values, min, max))
         .on("change", function (values, handle) {
-          const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+          const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
           filters.rangeFilters[category] = values;
           updateFilters(filters);
         });
@@ -146,7 +153,7 @@ $(document).ready(function () {
   }
 
   function selectAll(checkboxSelection) {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     
     // Return early if filters haven't been initialized yet
     if (!filters || !filters.valueFilters || !filters.rangeFilters) {
@@ -193,7 +200,7 @@ $(document).ready(function () {
   }
 
   function deselectAll(checkboxSelection) {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     
     // Return early if filters haven't been initialized yet
     if (!filters || !filters.valueFilters || !filters.rangeFilters) {
@@ -240,7 +247,7 @@ $(document).ready(function () {
     $(".value-filter").on("change", function () {
       // Get the ID of the checkbox and convert it to a format suitable for storage
       const id = convertToID($(this).attr("id"));
-      const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+      const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
       
       // Return early if filters haven't been initialized yet
       if (!filters || !filters.valueFilters) {
@@ -258,7 +265,7 @@ $(document).ready(function () {
     });
 
     $(".exclusive-filter").on("click", function () {
-      const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+      const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
       const category = $(this).data("col");
 
       if (filters.exclusiveFilters.includes(category)) {

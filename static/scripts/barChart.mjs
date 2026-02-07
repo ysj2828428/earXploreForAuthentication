@@ -6,6 +6,9 @@ import {
   defaultColors,
 } from "./dataUtility.mjs";
 
+const isAuth = window.location.pathname.startsWith("/auth");
+const FILTERS_KEY = isAuth ? "filters_auth" : "filters";
+
 
 /*
 Intialization of the interactive elements
@@ -32,9 +35,11 @@ $(document).ready(function () {
   */
   
   // Function to create Modal HTML for a given category and label
+
+  /** 
   function createModalHTML(category, label) {
     const activeData = filterData(
-      JSON.parse(window.sessionStorage.getItem("filters"))
+      JSON.parse(window.sessionStorage.getItem(FILTERS_KEY))
     );
     const fullCategory = getFullCategory(category);
   
@@ -80,6 +85,64 @@ $(document).ready(function () {
       `;
     return tableHTML;
   }
+  */
+
+  function createModalHTML(category, label) {
+    const activeData = filterData(
+      JSON.parse(window.sessionStorage.getItem(FILTERS_KEY))
+    );
+    const fullCategory = getFullCategory(category);
+  
+    const isAuth = window.location.pathname.startsWith("/auth");
+  
+    const columns = isAuth
+      ? ["ID", "Main Author", "Year", "Type of Approach", "Learning Method", "Sensors", "BAC"]
+      : ["ID", "Main Author", "Year", "Location", "Input Body Part", "Gesture"];
+  
+    const thead = `
+      <thead>
+        <tr>
+          <th></th>
+          ${columns.map((c) => `<th>${c}</th>`).join("")}
+        </tr>
+      </thead>
+    `;
+  
+    const tbody = `
+      <tbody>
+        ${activeData
+          .filter((entry) => String(entry[fullCategory] ?? "").includes(label))
+          .map((elem) => {
+            const rowTds = columns
+              .map((c) => `<td>${elem[c] ?? "N/A"}</td>`)
+              .join("");
+  
+            return `
+              <tr>
+                <td>
+                  <img class="info-circle" src="${$("#table-modal-body").data(
+                    "url-path-info-circle"
+                  )}" alt="Info circle for this row" title="Information about this row" data-id="${
+                    elem["ID"]
+                  }"/>
+                </td>
+                ${rowTds}
+              </tr>
+            `;
+          })
+          .join("")}
+      </tbody>
+    `;
+  
+    const tableHTML = `
+      <table class="table table-striped">
+        ${thead}
+        ${tbody}
+      </table>
+    `;
+  
+    return tableHTML;
+  }
   
   /*
     Section for the Bar Chart setup
@@ -92,7 +155,7 @@ $(document).ready(function () {
   // Creates all bar charts based on the data passed by the server and the currently active filters (categories and value filters)
   function createBarCharts() {
     $("#chartsContainer").empty(); // Clear the charts container
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     const activeCategories = filters.categoryFilters
       .map((cat) => getFullCategory(cat))
       .filter((cat) => cat !== undefined);
@@ -288,7 +351,7 @@ $(document).ready(function () {
   
   function updateVisibility() {
     const maxBars = parseInt($("#maxBarsDropdown").val());
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     const activeCategories = filters.categoryFilters
       .map((cat) => getFullCategory(cat))
       .filter((cat) => cat !== undefined);

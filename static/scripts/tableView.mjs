@@ -28,6 +28,29 @@ $(document).ready(function () {
       JSON.stringify(categoryOrder)
     );
   }
+
+  function getFiltersSafe() {
+    let filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
+  
+    if (!filters) {
+      // create filters，avoid null
+      filters = {
+        valueFilters: [],
+        rangeFilters: [],
+        exclusiveFilters: [],
+        categoryFilters: ["INFO"],
+      };
+      window.sessionStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
+    }
+  
+    if (!filters.valueFilters) filters.valueFilters = [];
+    if (!filters.rangeFilters) filters.rangeFilters = [];
+    if (!filters.exclusiveFilters) filters.exclusiveFilters = [];
+    if (!filters.categoryFilters) filters.categoryFilters = ["INFO"];
+  
+    return filters;
+  }
+  
   
   function showTableData(filters, sortCategory) {
     const activeData = filterData(filters);
@@ -159,24 +182,21 @@ $(document).ready(function () {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
-  showTableData(JSON.parse(window.sessionStorage.getItem(FILTERS_KEY)));
+  showTableData(getFiltersSafe());
 
   // add event listener to each checkbox to filter the table
   $(".form-check-input").on("change", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
-    showTableData(filters);
+    showTableData(getFiltersSafe());
   });
 
   // Add event listener to each value filter to filter the table
   $(".value-filter").on("change", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
-    showTableData(filters);
+    showTableData(getFiltersSafe());se(window.sessionStorage.getItem(FILTERS_KEY));
   });
 
   // Add event listener to exclusive filters button to filter the table
   $(".exclusive-filter").on("click", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
-    showTableData(filters);
+    showTableData(getFiltersSafe());
   });
 
   // Add event listener to each range slider to filter the table
@@ -186,8 +206,7 @@ $(document).ready(function () {
       return; 
     }
     this.noUiSlider.on("end", function () {
-      const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
-      showTableData(filters);
+      showTableData(getFiltersSafe());
     });
   });
 
@@ -200,7 +219,7 @@ $(document).ready(function () {
   // Use event delegation to handle clicks on sorting headers
   $("#table").on("click", ".sortable", function () {
     const sortCategory = $(this).data("category");
-    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
+    const filters = getFiltersSafe();
 
     // Toggle the sorting order
     categoryOrder[sortCategory] =
@@ -216,7 +235,7 @@ $(document).ready(function () {
 
   // Add event listener to the download filtered dataset button
   $("#downloadFilteredCsv").on("click", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
+    const filters = getFiltersSafe();
     const activeData = filterData(filters);
     downloadCsv(activeData, "filtered_data.csv");
   });

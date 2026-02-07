@@ -11,6 +11,10 @@ import {
   removeHighlighting,
 } from "./d3DrawingUtility.mjs";
 
+const isAuth = window.location.pathname.startsWith("/auth");
+const FILTERS_KEY = isAuth ? "filters_auth" : "filters";
+
+
 
 $(document).ready(function () {
   // Load data from the backend
@@ -88,19 +92,22 @@ $(document).ready(function () {
       }
       return citingOrder[targetIDs[a][0]] - citingOrder[targetIDs[b][0]]; // Sort by connection type priority
     });
-  
+
+    const isAuth = window.location.pathname.startsWith("/auth");
+
+    const columns = isAuth
+      ? ["ID", "Main Author", "Year", "Type of Approach", "Learning Method", "Sensors", "BAC"]
+      : ["ID", "Main Author", "Year", "Location", "Input Body Part", "Gesture"];
+
+    
     const colgroupHTML = `
       <colgroup>
-        <col style="width: 3%;">  <!-- Info icon column -->
-        <col style="width: 5%;"> <!-- ID column -->
-        <col style="width: 17%;"> <!-- Authors column -->
-        <col style="width: 8%;">  <!-- Year column -->
-        <col style="width: 15%;"> <!-- Location column -->
-        <col style="width: 12%;"> <!-- Body Part column -->
-        <col style="width: 18%;"> <!-- Gesture column -->
-        <col style="width: 10%;"> <!-- Empty column for alignment -->
+        <col style="width: 3%;">  <!-- Info icon -->
+        ${columns.map(() => `<col>`).join("")}
+        <col style="width: 12%;"> <!-- last column (empty / connection type) -->
       </colgroup>
     `;
+    
   
     const headerHTML = `
       <h5 class="mb-3 text-start">Selected Study</h5>
@@ -109,77 +116,56 @@ $(document).ready(function () {
           ${colgroupHTML}
           <thead>
             <tr>
-              <th class="centered-cell" ></th>
-              <th class="centered-cell" >ID</th>
-              <th class="centered-cell" >Main Author</th>
-              <th class="centered-cell" >Year</th>
-              <th class="centered-cell" >Location</th>
-              <th class="centered-cell" >Input Body Part</th>
-              <th class="centered-cell" >Gesture</th>
-              <th class="centered-cell" ></th> <!-- Empty header for alignment -->
+              <th class="centered-cell"></th>
+              ${columns.map((c) => `<th class="centered-cell">${c}</th>`).join("")}
+              <th class="centered-cell"></th>
             </tr>
           </thead>
           <tbody>
             <tr class="selected-study-row">
-              <td class="centered-cell" ><img src="${infoCirclePath}" alt="Info cirle for this row" title="View details" data-ID=${entry["ID"]} class="info-circle"/></td>
-              <td class="centered-cell" >${entry["ID"]}</td>
-              <td class="centered-cell" >${entry["Main Author"]}</td>
-              <td class="centered-cell" >${entry["Year"]}</td>
-              <td class="centered-cell" >${entry["Location"]}</td>
-              <td class="centered-cell" >${entry["Input Body Part"]}</td>
-              <td class="centered-cell" >${entry["Gesture"]}</td>
-              <td class="centered-cell" ></td> <!-- Empty cell for alignment -->
+              <td class="centered-cell">
+                <img src="${infoCirclePath}" alt="Info circle" title="View details"
+                  data-ID="${entry["ID"]}" class="info-circle"/>
+              </td>
+              ${columns.map((c) => `<td class="centered-cell">${entry[c] ?? "N/A"}</td>`).join("")}
+              <td class="centered-cell"></td>
             </tr>
           </tbody>
         </table>
       </div>
     `;
+
   
     let connectionsHTML;
-    if (
-      citingLinks.length === 0 &&
-      citedByLinks.length === 0 &&
-      coauthorLinks.length === 0
-    ) {
-      connectionsHTML =
-        "<h5 class='text-start'>Study Network</h5><p>No connections found with the current filter settings.</p>";
-    } else {
-      connectionsHTML = `
-        <h5 class="mb-3 text-start">Study Network</h5>
+
+    connectionsHTML = `
+      <h5 class="mb-3 text-start">Study Network</h5>
         <div class="table-responsive">
           <table class="table table-striped">
-          ${colgroupHTML}
+            ${colgroupHTML}
             <thead>
               <tr>
                 <th class="centered-cell"></th>
-                <th class="centered-cell">ID</th>
-                <th class="centered-cell">Authors</th>
-                <th class="centered-cell">Year</th>
-                <th class="centered-cell">Location</th>
-                <th class="centered-cell">Body Part</th>
-                <th class="centered-cell">Gesture</th>
+                ${columns.map((c) => `<th class="centered-cell">${c}</th>`).join("")}
                 <th class="centered-cell">Connection Type</th>
               </tr>
             </thead>
             <tbody>
               ${orderedIDs
                 .map((targetID) => {
-                  const entry = getDataEntry(targetID);
+                  const e = getDataEntry(targetID);
                   return `
-                  <tr>
-                    <td class="centered-cell"><img src="${infoCirclePath}" alt="Info cirle for this row" title="View details" data-ID=${
-                    entry["ID"]
-                  } class="info-circle"/></td>
-                    <td class="centered-cell">${entry["ID"]}</td>
-                    <td class="centered-cell">${entry["Main Author"]}</td>
-                    <td class="centered-cell">${entry["Year"]}</td>
-                    <td class="centered-cell">${entry["Location"]}</td>
-                    <td class="centered-cell">${entry["Input Body Part"]}</td>
-                    <td class="centered-cell">${entry["Gesture"]}</td>
-                    <td class="centered-cell">${targetIDs[targetID]
-                      .map(formatConnectionType)
-                      .join(", ")}</td>
-                  </tr>`;
+                    <tr>
+                      <td class="centered-cell">
+                        <img src="${infoCirclePath}" alt="Info circle" title="View details"
+                          data-ID="${e["ID"]}" class="info-circle"/>
+                      </td>
+                      ${columns.map((c) => `<td class="centered-cell">${e[c] ?? "N/A"}</td>`).join("")}
+                      <td class="centered-cell">${targetIDs[targetID]
+                        .map(formatConnectionType)
+                        .join(", ")}</td>
+                    </tr>
+                  `;
                 })
                 .join("\n")}
             </tbody>
@@ -188,8 +174,8 @@ $(document).ready(function () {
         <p class="text-start"> Total connections: ${
           citingLinks.length + citedByLinks.length + coauthorLinks.length
         } </p>
-      `;
-    }
+  `;
+
   
     // Append the generated HTML to the modal and show it
     $("#timelineConnectionsContainer").html(headerHTML);
@@ -215,7 +201,7 @@ $(document).ready(function () {
   function generateTimelineData() {
     // Get the currently active nodes based on the selected category and filters
     const activeNodes = filterData(
-      JSON.parse(window.sessionStorage.getItem("filters"))
+      JSON.parse(window.sessionStorage.getItem(FILTERS_KEY))
     ).map((item) => item["ID"].toString());
   
     // Order the nodes by the selected category

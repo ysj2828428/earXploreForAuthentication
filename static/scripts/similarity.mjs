@@ -11,6 +11,10 @@ import {
   drawNode,
 } from "./d3DrawingUtility.mjs";
 
+const isAuth = window.location.pathname.startsWith("/auth");
+const FILTERS_KEY = isAuth ? "filters_auth" : "filters";
+
+
 
 /*
 Interaction section
@@ -103,8 +107,17 @@ $(document).ready(function () {
     - The modal is prepared with the information about the selected study
     - If the study is connected to other studies, the connections are shown in a table
   */
+  /**
   function openNetworkDetails(nodeID, links) {
     const nodeData = getDataEntry(nodeID);
+
+    const isAuth = window.location.pathname.startsWith("/auth");
+
+    const columns = isAuth
+        ? ["ID", "Main Author", "Year", "Type of Approach", "Learning Method", "Sensors", "BAC"]
+        : ["ID", "Main Author", "Year", "Location", "Input Body Part", "Gesture"];
+
+
     const connectedNodes = links
       .filter((link) => link.sourceID === nodeID || link.targetID === nodeID)
       .map((link) => {
@@ -220,7 +233,116 @@ $(document).ready(function () {
     // Show the modal
     $("#connectionsModal").modal("show");
   }
+   */
+
+  function openNetworkDetails(nodeID, links) {
+    const nodeData = getDataEntry(nodeID);
+
+    const isAuth = window.location.pathname.startsWith("/auth");
+
+    const columns = isAuth
+        ? ["ID", "Main Author", "Year", "Type of Approach", "Learning Method", "Sensors", "BAC"]
+        : ["ID", "Main Author", "Year", "Location", "Input Body Part", "Gesture"];
+
+
+    const connectedNodes = links
+      .filter((link) => link.sourceID === nodeID || link.targetID === nodeID)
+      .map((link) => {
+        return {
+          id: link.sourceID === nodeID ? link.targetID : link.sourceID,
+          similarity: link.value,
+        };
+      });
+    // Sort connected nodes by similarity
+    connectedNodes.sort((a, b) => b.similarity - a.similarity);
   
+    const colGroupHTML = `
+      <colgroup>
+        <col style="width: 3%;">  <!-- Info icon -->
+          ${columns.map(() => `<col>`).join("")}
+        <col style="width: 10%;"> <!-- last column (Similarity / empty) -->
+      </colgroup>
+      `;
+
+  
+    // Populate the connections container with information about the selected study
+    const sourceHTML = `
+  <h5 class="mb-3">Selected Study</h5>
+  <div class="table-responsive mb-4">
+    <table class="table table-striped">
+      ${colGroupHTML}
+      <thead>
+        <tr>
+          <th></th>
+          ${columns.map((c) => `<th>${c}</th>`).join("")}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="selected-study-row">
+          <td>
+            <img src="${infoCirclePath}" alt="Info circle" title="Information about this row"
+              data-ID="${nodeData["ID"]}" class="info-circle network-information"/>
+          </td>
+          ${columns.map((c) => `<td>${nodeData[c] ?? "N/A"}</td>`).join("")}
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+`;
+
+  
+    // Populate the connections container with information about the connected studies
+    const connectionsHTML = `
+  <h5 class="mb-3">Study Network</h5>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      ${colGroupHTML}
+      <thead>
+        <tr>
+          <th></th>
+          ${columns.map((c) => `<th>${c}</th>`).join("")}
+          <th>Similarity</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${
+          connectedNodes.length > 0
+            ? connectedNodes
+                .map((node) => {
+                  const nd = getDataEntry(node.id);
+                  return `
+                    <tr>
+                      <td>
+                        <img src="${infoCirclePath}" alt="Info circle" title="Information about this row"
+                          data-ID="${nd["ID"]}" class="info-circle network-information"/>
+                      </td>
+                      ${columns.map((c) => `<td>${nd[c] ?? "N/A"}</td>`).join("")}
+                      <td><strong>${node.similarity.toFixed(2)}</strong></td>
+                    </tr>
+                  `;
+                })
+                .join("")
+            : `<tr><td colspan="${columns.length + 2}" class="text-center">No connected studies found.</td></tr>`
+        }
+      </tbody>
+    </table>
+  </div>
+`;
+
+    // Add information about the total number of connections
+    const totalConnectionsHTML = `<p class="text-muted mt-2">Total connections: ${connectedNodes.length}</p>`;
+  
+    // Append to the connections container
+    $("#connectionsContainer").empty();
+    $("#connectionsContainer").html(sourceHTML);
+    $("#connectionsContainer").append(connectionsHTML);
+    $("#connectionsContainer").append(totalConnectionsHTML);
+  
+    // Show the modal
+    $("#connectionsModal").modal("show");
+  }
+
   function findSimilarStudies(links) {
     const modalID = window.sessionStorage.getItem("modalID");
     if (modalID) {
@@ -268,7 +390,7 @@ $(document).ready(function () {
   
   // Gets the current similarity data based on the selected type and the selected filters so only active studies are included, returns an object with the study IDs and the similarity matrix like this: {studyIDs: [...], similarityMatrix: [[...]]}
   function getCurrentSimilarityData() {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     // Get the IDs of all data studies that are currently active based on the selected filters
     const activeDataIDs = filterData(filters).map((item) =>
       item["ID"].toString()

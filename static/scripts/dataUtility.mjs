@@ -33,6 +33,10 @@ const abstracts = $("body").data("abstracts");
  */
 const titles = $("body").data("titles");
 
+const isAuth = window.location.pathname.startsWith("/auth");
+const FILTERS_KEY = isAuth ? "filters_auth" : "filters";
+
+
 
 /**
  * An object mapping specific string labels to their corresponding numeric order or priority.
@@ -75,7 +79,7 @@ const defaultColor = d3.color("rgb(184, 148, 145)").hex();
  * @param {Object} filters 
  */
 function updateFilters(filters) {
-  window.sessionStorage.setItem("filters", JSON.stringify(filters));
+  window.sessionStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
 }
 
 /**
@@ -410,9 +414,27 @@ function showStudyModal(studyID) {
       let filtersHTML = filters
         .map(filter => `<strong>${filter.split("_").pop()}</strong>: ${entry[filter] || "N/A"}`)
         .join("<br />");
-      if (heading === "General Information") {
-        filtersHTML = `<strong>Main Author</strong>: ${entry["Main Author"] || "N/A"}<br />${filtersHTML}<br /><strong>Gesture</strong>: ${entry["Gesture"] || "N/A"}`;
-      }
+        if (heading === "General Information") {
+          if (isAuth) {
+            const extraTop = [
+              ["Main Author", "Main Author"],
+              ["Type of Approach", "Type of Approach"],
+              ["Learning Method", "Learning Method"],
+              ["Continuous / One-Time", "Continuous / One-Time"],
+              ["Sensors", "Sensors"],
+              ["BAC", "BAC"], //
+            ]
+              .map(([label, key]) => `<strong>${label}</strong>: ${entry[key] || "N/A"}`)
+              .join("<br />");
+        
+            filtersHTML = `${extraTop}<br />${filtersHTML}`;
+          } else {
+            filtersHTML =
+              `<strong>Main Author</strong>: ${entry["Main Author"] || "N/A"}<br />` +
+              `${filtersHTML}<br />` +
+              `<strong>Gesture</strong>: ${entry["Gesture"] || "N/A"}`;
+          }
+        }
 
       const panelHTML = `<h5 class="study-info-panel-header">${heading}</h5>` + filtersHTML;
       

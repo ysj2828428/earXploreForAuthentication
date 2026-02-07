@@ -1,10 +1,14 @@
 import { updateFilters } from "./dataUtility.mjs";
 
+const isAuth = window.location.pathname.startsWith("/auth");
+const FILTERS_KEY = isAuth ? "filters_auth" : "filters";
+
+
 $(document).ready(function () {
   // Load the start categories from the backend
   const startCategories = $("#toggle-menu-container").data("start-categories");
   
-  let filters = JSON.parse(window.sessionStorage.getItem("filters"));
+  let filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
   let categoryFilters = (filters && filters.categoryFilters) || null;
   if (!categoryFilters) {
     categoryFilters = startCategories;
@@ -31,7 +35,7 @@ $(document).ready(function () {
   }
   // When a checkbox is clicked, update the filters in local storage and the current view
   $(".column-filter").on("change", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     
     // Return early if filters haven't been initialized yet
     if (!filters || !filters.categoryFilters) {
@@ -50,7 +54,7 @@ $(document).ready(function () {
 
   // Add selecting functionality to the "Select All" button
   $("#toggleSelectAllColumns").on("click", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     
     // Return early if filters haven't been initialized yet
     if (!filters) {
@@ -79,7 +83,7 @@ $(document).ready(function () {
       element.checked = false;
     });
 
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     
     // Return early if filters haven't been initialized yet
     if (!filters) {
@@ -94,7 +98,7 @@ $(document).ready(function () {
   });
 
   $("#reset-filters-button").on("click", function () {
-    const filters = JSON.parse(window.sessionStorage.getItem("filters"));
+    const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));
     
     // Return early if filters haven't been initialized yet
     if (!filters) {
