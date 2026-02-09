@@ -61,3 +61,7 @@ start-category-filters:
   - Accuracy (BAC)
 
 special-format-explanations: []
+
+citation-matrix-path: interconnections_datasets_auth/citation_matrix_auth.csv
+
+coauthor-matrix-path: interconnections_datasets_auth/coauthor_matrix_auth.csv

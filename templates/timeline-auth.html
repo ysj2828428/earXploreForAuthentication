@@ -88,5 +88,13 @@
 {% endblock %}
 
 {% block scripts %}
+  <script id="citation-matrix-json" type="application/json">
+    {{ citation_matrix | tojson }}
+  </script>
+
+  <script id="coauthor-matrix-json" type="application/json">
+    {{ coauthor_matrix | tojson }}
+  </script>
+
   <script type="module" src="{{ url_for('static', filename='scripts/timeline.mjs') }}"></script>
 {% endblock %}

@@ -258,7 +258,6 @@ $(document).ready(function () {
         }
       }
     }
-  
     return {
       nodes,
       years,
@@ -432,7 +431,7 @@ $(document).ready(function () {
         nodeTooltip.html(`
           <strong>Study ${entry["ID"]}</strong>
           <p>${entry["Main Author"]} (${entry["Year"]})</p>
-          <p>Location: ${entry["Location"]}</p>
+          <p>Type of Approach: ${entry["Type of Approach"]}</p>
           `);
   
         // Highlight the node and its connections

@@ -161,12 +161,10 @@ def resolve_config_path(dimension: str) -> str:
     return os.path.join(os.path.dirname(__file__), "configs", DIMENSIONS[dimension]["config_yaml"])
 
 def load_dimension_data(dimension: str):
-    """
-    统一入口：根据 dimension 选 YAML -> 刷新全局 sidebar 配置 -> load_data -> 返回 data/explanations/db_path
-    """
+
     config_path = resolve_config_path(dimension)
     cfg = get_config(config_path)
-    apply_config_to_globals(cfg)  # ✅ 你要求可以引入它
+    apply_config_to_globals(cfg)  
 
     data, explanations = load_data(config_path=config_path)
     return data, explanations, cfg["database_path"], cfg
@@ -434,6 +432,38 @@ def load_similarity_data():
     
     return similarity_data
 
+def load_similarity_data_auth():
+    try:
+        # Read the similarity matrix with the first column as index
+        csv_path_as = os.path.join(os.path.dirname(__file__), "abstract_similarity_datasets/normalized_abstract_similarity_auth.csv")
+        abstract_similarity_df = pd.read_csv(csv_path_as, index_col=0)
+        abstract_similarity_df = abstract_similarity_df.fillna('N/A')  # Replace actual NaN values
+        abstract_similarity_df = abstract_similarity_df.replace('nan', 'N/A')  # Replace string 'nan' values
+        csv_path_ds = os.path.join(os.path.dirname(__file__), "database_similarity_datasets/normalized_database_similarity_auth.csv")
+        database_similarity_df = pd.read_csv(csv_path_ds, index_col=0)
+        database_similarity_df = database_similarity_df.fillna('N/A')  # Replace actual NaN values
+        database_similarity_df = database_similarity_df.replace('nan', 'N/A')  # Replace string 'nan' values
+
+        # Prepare data structure that preserves row/column information
+        similarity_data = {
+            'abstract_study_ids': abstract_similarity_df.columns.tolist(),
+            'abstract_index_ids': abstract_similarity_df.index.tolist(),
+            'abstract_matrix': abstract_similarity_df.values.tolist(),
+
+            'database_study_ids': database_similarity_df.columns.tolist(),
+            'database_index_ids': database_similarity_df.index.tolist(),
+            'database_matrix': database_similarity_df.values.tolist(),
+        }
+    except FileNotFoundError:
+        return "similarity.csv file not found"
+    except pd.errors.EmptyDataError:
+        return "similarity.csv file is empty"
+    except Exception as e:
+        return f"Error loading similarity.csv: {e}"
+    
+    return similarity_data
+
+"""
 def load_citation_data():
     # Load citation and co-author matrices for timeline view
     citation_matrix = []
@@ -481,6 +511,37 @@ def load_citation_data():
     except Exception as e:
         return f"Error loading coauthor matrix: {e}"
     
+    return citation_matrix, coauthor_matrix
+"""
+
+def load_citation_data(citation_path: str, coauthor_path: str):
+    citation_matrix = []
+    coauthor_matrix = []
+
+    try:
+        csv_path = os.path.join(os.path.dirname(__file__), citation_path)
+        citation_df = pd.read_csv(csv_path, index_col=0)
+
+        header_row = [""] + citation_df.columns.tolist()
+        citation_matrix = [header_row]
+
+        for idx in citation_df.index:
+            citation_matrix.append([idx] + citation_df.loc[idx].tolist())
+    except Exception as e:
+        return f"Error loading citation matrix: {e}"
+
+    try:
+        csv_path = os.path.join(os.path.dirname(__file__), coauthor_path)
+        coauthor_df = pd.read_csv(csv_path, index_col=0)
+
+        header_row = [""] + coauthor_df.columns.tolist()
+        coauthor_matrix = [header_row]
+
+        for idx in coauthor_df.index:
+            coauthor_matrix.append([idx] + coauthor_df.loc[idx].tolist())
+    except Exception as e:
+        return f"Error loading coauthor matrix: {e}"
+
     return citation_matrix, coauthor_matrix
 
 @app.get("/")
@@ -670,7 +731,7 @@ def auth_similarity():
 
     sidebar_panels = generate_sidebar_panels(data, explanations)
 
-    similarity_data = load_similarity_data()
+    similarity_data = load_similarity_data_auth()
     if not isinstance(similarity_data, dict):
         return render_template("error.html", error=similarity_data), 500
 
@@ -711,7 +772,9 @@ def timeline():
             continue
         categories.append(category)
 
-    citation_matrix, coauthor_matrix = load_citation_data()
+    cfg = get_config(config_path)
+    apply_config_to_globals(cfg)
+    citation_matrix, coauthor_matrix = load_citation_data(cfg["citation_matrix_path"], cfg["coauthor_matrix_path"])
     excluded_categories = EXCLUDED_SIDEBAR_CATEGORIES + ADVANCED_SIDEBAR_CATEGORIES + ["Year"]
 
     return render_template("timeline.html", 
@@ -740,9 +803,13 @@ def auth_timeline():
 
     sidebar_panels = generate_sidebar_panels(data, explanations)
 
-    citation_matrix, coauthor_matrix = load_citation_data()
+    cfg = get_config(config_path)
+    apply_config_to_globals(cfg)
+    citation_matrix, coauthor_matrix = load_citation_data(
+        cfg["citation_matrix_path"],
+        cfg["coauthor_matrix_path"],
+    )
     excluded_categories = EXCLUDED_SIDEBAR_CATEGORIES + ADVANCED_SIDEBAR_CATEGORIES + ["Year"]
-
     return render_template(
         "timeline-auth.html",
         current_view="timeView",
@@ -758,6 +825,20 @@ def auth_timeline():
         excluded_categories=json.dumps(excluded_categories),
     )
 
+def to_jsonable(x):
+    # DataFrame -> list
+    try:
+        import pandas as pd
+        if isinstance(x, pd.DataFrame):
+            return x.values.tolist()
+    except Exception:
+        pass
+
+    # numpy -> list
+    if isinstance(x, np.ndarray):
+        return x.tolist()
+
+    return x
 
 @app.get("/switch")
 def switch_page():
