@@ -7,3 +7,6 @@ high_confidence_citations.xlsx
 .venv
 .env
 __pycache__
+interconnections_datasets/~$bibtex_mapping_of_ids.xlsx
+interconnections_datasets_auth/~$bibtex_mapping_of_ids_authentication.xlsx
+~$citation_confirmation.xlsx

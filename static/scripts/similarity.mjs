@@ -349,13 +349,13 @@ $(document).ready(function () {
       openNetworkDetails(modalID, links);
     }
   }
+  /** 
   
-  /*
     Section for preparing the data for the similarity graph
     - The data needs to be available with respect to the current filters
     - The nodes have to be sorted by the selected category and how many values they have in that category
     - For each value there needs to be a color assigned
-  */
+  
   // Generate graph data from the similarity matrix, create links based on the threshold, and return sorted nodes, links and the color scale
   function generateGraphData(threshold) {
     const { studyIDs, similarityMatrix } = getCurrentSimilarityData();
@@ -366,6 +366,8 @@ $(document).ready(function () {
       studyIDs,
       $("#similarityColorCategory").val()
     );
+
+    const idToIndex = new Map(studyIDs.map((id, idx) => [String(id), idx]));
   
     // Only check each pair once (i < j)
     for (let i = 0; i < sortedNodes.length; i++) {
@@ -387,7 +389,52 @@ $(document).ready(function () {
   
     return { sortedNodes, links, colorScale };
   }
+  */
+
+  /*
+    Section for preparing the data for the similarity graph
+    - The data needs to be available with respect to the current filters
+    - The nodes have to be sorted by the selected category and how many values they have in that category
+    - For each value there needs to be a color assigned
+  */
+  // Generate graph data from the similarity matrix, create links based on the threshold, and return sorted nodes, links and the color scale
+  function generateGraphData(threshold) {
+    const { studyIDs, similarityMatrix } = getCurrentSimilarityData();
+    const links = [];
   
+    // Sort the nodes by category if a category is selected
+    const { sortedNodes, colorScale } = sortNodesByCategory(
+      studyIDs,
+      $("#similarityColorCategory").val()
+    );
+
+    const idToIndex = new Map(studyIDs.map((id, idx) => [String(id), idx]));
+  
+    // Only check each pair once (i < j)
+    for (let i = 0; i < sortedNodes.length; i++) {
+      for (let j = i + 1; j < sortedNodes.length; j++) {
+        const nodeA = String(sortedNodes[i]);
+        const nodeB = String(sortedNodes[j]);
+  
+        const idxA = idToIndex.get(nodeA);
+        const idxB = idToIndex.get(nodeB);
+  
+        if (idxA === undefined || idxB === undefined) continue;
+  
+        const similarity = similarityMatrix?.[idxA]?.[idxB];
+        if (similarity != null && similarity >= threshold) {
+          links.push({
+            sourceID: nodeA,
+            targetID: nodeB,
+            value: similarity,
+          });
+        }
+      }
+    }
+  
+    return { sortedNodes, links, colorScale };
+  }
+
   // Gets the current similarity data based on the selected type and the selected filters so only active studies are included, returns an object with the study IDs and the similarity matrix like this: {studyIDs: [...], similarityMatrix: [[...]]}
   function getCurrentSimilarityData() {
     const filters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY));

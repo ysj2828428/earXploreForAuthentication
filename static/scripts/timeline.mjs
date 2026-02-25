@@ -20,6 +20,7 @@ $(document).ready(function () {
   // Load data from the backend
   const coauthorMatrix = $("#timeline-graph-container").data("coauthor");
   const citationMatrix = $("#timeline-graph-container").data("citation");
+
   const filterCategories = $("body").data("filter-categories");
   const excludedCategories = $(".category-dropdown-container").data(
     "excluded-categories"
@@ -194,10 +195,7 @@ $(document).ready(function () {
     }
   }
   
-  /*
-   * Preparing the data for the timeline graph.
-   * The graph will be rendered using the coauthor and citation matrices.
-   */
+  /**
   function generateTimelineData() {
     // Get the currently active nodes based on the selected category and filters
     const activeNodes = filterData(
@@ -266,6 +264,83 @@ $(document).ready(function () {
       colorScale,
     };
   }
+*/
+
+
+
+  /*
+   * Preparing the data for the timeline graph.
+   * The graph will be rendered using the coauthor and citation matrices.
+   */
+  function generateTimelineData() {
+    const currentFilters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY)) || {};
+  
+    // 过滤后的节点（决定显示哪些）
+    const activeData = filterData(currentFilters);
+    const activeNodes = activeData.map((item) => item["ID"].toString());
+  
+    // ✅ 用“全量数据”做矩阵ID列表（决定映射顺序）
+    // 注意：这里必须是全量（不随过滤变化）
+    const allData = filterData({}); // 在你的项目里一般代表“不过滤”
+    const allIDs = allData.map((item) => item["ID"].toString());
+  
+    // ✅ 关键：矩阵数组的行列顺序 = ID 数字升序（适用于 auth 这种 1..48 缺少一些）
+    const matrixIDs = [...new Set(allIDs)].sort((a, b) => Number(a) - Number(b));
+  
+    // Order nodes by selected category
+    const { sortedNodes, colorScale } = sortNodesByCategory(activeNodes, colorCategory);
+  
+    // nodes with year
+    const nodes = sortedNodes.map((node) => ({
+      id: node,
+      year: getDataEntry(node, "Year"),
+    }));
+  
+    // years grouping
+    const years = {};
+    nodes.forEach((node) => (years[node.year] ??= []).push(node.id));
+    const maxYears = Math.max(...Object.keys(years).map((y) => years[y].length));
+  
+    // ✅ ID -> index
+    const idToIdx = new Map(matrixIDs.map((id, idx) => [id, idx]));
+  
+    // read matrix cell (0/1 or "0"/"1")
+    const cell = (matrix, i, j) => {
+      const n = Number(matrix?.[i]?.[j]);
+      return Number.isFinite(n) ? n : 0;
+    };
+  
+    // build links
+    const links = { coauthorLinks: [], citingLinks: [], citedByLinks: [] };
+  
+    for (let i = 0; i < sortedNodes.length; i++) {
+      for (let j = i + 1; j < sortedNodes.length; j++) {
+        const a = sortedNodes[i];
+        const b = sortedNodes[j];
+  
+        const ia = idToIdx.get(a);
+        const ib = idToIdx.get(b);
+        if (ia === undefined || ib === undefined) continue;
+  
+        // coauthor: undirected
+        if (cell(coauthorMatrix, ia, ib) > 0 || cell(coauthorMatrix, ib, ia) > 0) {
+          links.coauthorLinks.push({ sourceID: a, targetID: b });
+        }
+  
+        // citation: directed
+        if (cell(citationMatrix, ia, ib) > 0) {
+          links.citingLinks.push({ sourceID: a, targetID: b });
+        }
+        if (cell(citationMatrix, ib, ia) > 0) {
+          links.citedByLinks.push({ sourceID: a, targetID: b });
+        }
+      }
+    }
+  
+    return { nodes, years, links, maxYears, colorScale };
+  }
+
+  
   
   function drawTimelineGraph() {
     const headerHeight = $("header").outerHeight(true) || 0;

@@ -3,12 +3,12 @@ database-path: authentication_fixed.csv
 explanations-path: explanations_authentication.csv
 
 excluded-sidebar-categories:
-  - ID
   - Abstract
   - Study Link
   - Title
   - Authors
   - DONE
+  - ID
 
 advanced-sidebar-categories:
   - Keywords
@@ -57,8 +57,8 @@ start-category-filters:
   - Type of Approach
   - Learning Method
   - Sensors
-  - Continuous / One-Time
-  - Accuracy (BAC)
+  - Continuous/ One-Time
+  - BAC
 
 special-format-explanations: []
 
