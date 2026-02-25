@@ -195,7 +195,14 @@ $(document).ready(function () {
     }
   }
   
+
+    /*
+   * Preparing the data for the timeline graph.
+   * The graph will be rendered using the coauthor and citation matrices.
+   */
   /**
+   * 
+   
   function generateTimelineData() {
     // Get the currently active nodes based on the selected category and filters
     const activeNodes = filterData(
@@ -264,81 +271,109 @@ $(document).ready(function () {
       colorScale,
     };
   }
-*/
-
-
+  */
 
   /*
-   * Preparing the data for the timeline graph.
-   * The graph will be rendered using the coauthor and citation matrices.
-   */
-  function generateTimelineData() {
-    const currentFilters = JSON.parse(window.sessionStorage.getItem(FILTERS_KEY)) || {};
-  
-    // 过滤后的节点（决定显示哪些）
-    const activeData = filterData(currentFilters);
-    const activeNodes = activeData.map((item) => item["ID"].toString());
-  
-    // ✅ 用“全量数据”做矩阵ID列表（决定映射顺序）
-    // 注意：这里必须是全量（不随过滤变化）
-    const allData = filterData({}); // 在你的项目里一般代表“不过滤”
-    const allIDs = allData.map((item) => item["ID"].toString());
-  
-    // ✅ 关键：矩阵数组的行列顺序 = ID 数字升序（适用于 auth 这种 1..48 缺少一些）
-    const matrixIDs = [...new Set(allIDs)].sort((a, b) => Number(a) - Number(b));
-  
-    // Order nodes by selected category
-    const { sortedNodes, colorScale } = sortNodesByCategory(activeNodes, colorCategory);
-  
-    // nodes with year
-    const nodes = sortedNodes.map((node) => ({
+ * Preparing the data for the timeline graph.
+ * The graph will be rendered using the coauthor and citation matrices.
+ */
+/*
+ * Preparing the data for the timeline graph.
+ * The graph will be rendered using the coauthor and citation matrices.
+ */
+/*
+ * Preparing the data for the timeline graph.
+ * The graph will be rendered using the coauthor and citation matrices.
+ */
+function generateTimelineData() {
+  // Get the currently active nodes based on the selected category and filters
+  const activeNodes = filterData(
+    JSON.parse(window.sessionStorage.getItem(FILTERS_KEY))
+  ).map((item) => item["ID"].toString());
+
+  // Order the nodes by the selected category
+  const { sortedNodes, colorScale } = sortNodesByCategory(
+    activeNodes,
+    colorCategory
+  );
+
+  // Append the year to each node
+  const nodes = sortedNodes.map((node) => {
+    return {
       id: node,
       year: getDataEntry(node, "Year"),
-    }));
-  
-    // years grouping
-    const years = {};
-    nodes.forEach((node) => (years[node.year] ??= []).push(node.id));
-    const maxYears = Math.max(...Object.keys(years).map((y) => years[y].length));
-  
-    // ✅ ID -> index
-    const idToIdx = new Map(matrixIDs.map((id, idx) => [id, idx]));
-  
-    // read matrix cell (0/1 or "0"/"1")
-    const cell = (matrix, i, j) => {
-      const n = Number(matrix?.[i]?.[j]);
-      return Number.isFinite(n) ? n : 0;
     };
-  
-    // build links
-    const links = { coauthorLinks: [], citingLinks: [], citedByLinks: [] };
-  
-    for (let i = 0; i < sortedNodes.length; i++) {
-      for (let j = i + 1; j < sortedNodes.length; j++) {
-        const a = sortedNodes[i];
-        const b = sortedNodes[j];
-  
-        const ia = idToIdx.get(a);
-        const ib = idToIdx.get(b);
-        if (ia === undefined || ib === undefined) continue;
-  
-        // coauthor: undirected
-        if (cell(coauthorMatrix, ia, ib) > 0 || cell(coauthorMatrix, ib, ia) > 0) {
-          links.coauthorLinks.push({ sourceID: a, targetID: b });
-        }
-  
-        // citation: directed
-        if (cell(citationMatrix, ia, ib) > 0) {
-          links.citingLinks.push({ sourceID: a, targetID: b });
-        }
-        if (cell(citationMatrix, ib, ia) > 0) {
-          links.citedByLinks.push({ sourceID: a, targetID: b });
-        }
+  });
+
+  const years = {};
+  nodes.forEach((node) => {
+    if (!years[node.year]) {
+      years[node.year] = [node.id];
+    } else {
+      years[node.year].push(node.id);
+    }
+  });
+
+  const maxYears = Math.max(
+    ...Object.keys(years).map((year) => years[year].length)
+  );
+
+  // ✅ auth-only: map IDs to matrix IDs by "removing" 25 and 30 from the index space
+  // Example: 1..24 -> 1..24
+  //          26..29 -> 25..28   (shift -1)
+  //          31..∞  -> (id-2)   (shift -2)
+  function toMatrixId(idStr) {
+    if (!isAuth) return idStr;
+
+    const n = Number(idStr);
+    if (!Number.isFinite(n)) return idStr;
+
+    if (n === 25 || n === 30) return null; // these do not exist in matrix
+    if (n > 30) return String(n - 2);
+    if (n > 25) return String(n - 1);
+    return String(n);
+  }
+
+  // Create links for co-authors and citations
+  const links = { coauthorLinks: [], citingLinks: [], citedByLinks: [] };
+
+  for (const node of sortedNodes) {
+    const nodeM = toMatrixId(node);
+    if (nodeM === null) continue;
+
+    const coRow = coauthorMatrix?.[nodeM] ?? {};
+    const ciRow = citationMatrix?.[nodeM] ?? {};
+
+    for (const other of sortedNodes) {
+      const otherM = toMatrixId(other);
+      if (otherM === null) continue;
+
+      // coauthor links
+      if (coRow[otherM]) {
+        links.coauthorLinks.push({ sourceID: node, targetID: other });
+      }
+
+      // citing links: node -> other
+      if (ciRow[otherM]) {
+        links.citingLinks.push({ sourceID: node, targetID: other });
+      }
+
+      // cited-by links: other -> node
+      const otherCiRow = citationMatrix?.[otherM] ?? {};
+      if (otherCiRow[nodeM]) {
+        links.citedByLinks.push({ sourceID: node, targetID: other });
       }
     }
-  
-    return { nodes, years, links, maxYears, colorScale };
   }
+
+  return {
+    nodes,
+    years,
+    links,
+    maxYears,
+    colorScale,
+  };
+}
 
   
   

@@ -117,12 +117,40 @@
             <a
               href="https://github.com/OpenEarable/earXplore/tree/master"
               target="_blank"
+              style="text-decoration: none;"
             >
-              <h3>EarXplore</h3>
-              <span class="text-muted" style="color: #b89491 !important"
-                >Interaction</span
-              >
+              <h3 class="mb-0">EarXplore</h3>
             </a>
+          
+            <div class="dropdown">
+              <button
+                class="btn btn-sm dropdown-toggle p-0 border-0"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                id="dimensionDropdownBtn"
+                style="
+                  color: #b89491 !important;
+                  background: transparent;
+                  font-weight: 400;
+                "
+              >
+                Interaction
+              </button>
+          
+              <ul class="dropdown-menu dropdown-menu-start">
+                <li>
+                  <a class="dropdown-item" href="{{ url_for('home') }}">
+                    Interaction
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{{ url_for('auth_home') }}">
+                    Authentication
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
 
           {# Links to other Views #}
@@ -188,16 +216,6 @@
               <img
                 src="{{ url_for('static', filename='images/paper_icon.svg')}}"
                 alt="Paper Icon"
-                class="navbar-icon"
-              />
-            </button>
-          </a>
-          <a href="{{ url_for('switch_page') }}">
-            <button class="add-study-button">
-              <span class="navbar-text"> Switch Dimension </span>
-              <img
-                src="{{ url_for('static', filename='images/filter-icon.svg') }}"
-                alt="Switch Dimension Icon"
                 class="navbar-icon"
               />
             </button>
@@ -463,6 +481,13 @@
       type="module"
       src="{{ url_for('static', filename='scripts/base.mjs') }}"
     ></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const isAuth = window.location.pathname.startsWith("/auth");
+        const btn = document.getElementById("dimensionDropdownBtn");
+        if (btn) btn.textContent = isAuth ? "Authentication" : "Interaction";
+      });
+    </script>
 
     {% block scripts %} {% endblock scripts %}
   </body>
