@@ -200,9 +200,6 @@ $(document).ready(function () {
    * Preparing the data for the timeline graph.
    * The graph will be rendered using the coauthor and citation matrices.
    */
-  /**
-   * 
-   
   function generateTimelineData() {
     // Get the currently active nodes based on the selected category and filters
     const activeNodes = filterData(
@@ -271,109 +268,6 @@ $(document).ready(function () {
       colorScale,
     };
   }
-  */
-
-  /*
- * Preparing the data for the timeline graph.
- * The graph will be rendered using the coauthor and citation matrices.
- */
-/*
- * Preparing the data for the timeline graph.
- * The graph will be rendered using the coauthor and citation matrices.
- */
-/*
- * Preparing the data for the timeline graph.
- * The graph will be rendered using the coauthor and citation matrices.
- */
-function generateTimelineData() {
-  // Get the currently active nodes based on the selected category and filters
-  const activeNodes = filterData(
-    JSON.parse(window.sessionStorage.getItem(FILTERS_KEY))
-  ).map((item) => item["ID"].toString());
-
-  // Order the nodes by the selected category
-  const { sortedNodes, colorScale } = sortNodesByCategory(
-    activeNodes,
-    colorCategory
-  );
-
-  // Append the year to each node
-  const nodes = sortedNodes.map((node) => {
-    return {
-      id: node,
-      year: getDataEntry(node, "Year"),
-    };
-  });
-
-  const years = {};
-  nodes.forEach((node) => {
-    if (!years[node.year]) {
-      years[node.year] = [node.id];
-    } else {
-      years[node.year].push(node.id);
-    }
-  });
-
-  const maxYears = Math.max(
-    ...Object.keys(years).map((year) => years[year].length)
-  );
-
-  // ✅ auth-only: map IDs to matrix IDs by "removing" 25 and 30 from the index space
-  // Example: 1..24 -> 1..24
-  //          26..29 -> 25..28   (shift -1)
-  //          31..∞  -> (id-2)   (shift -2)
-  function toMatrixId(idStr) {
-    if (!isAuth) return idStr;
-
-    const n = Number(idStr);
-    if (!Number.isFinite(n)) return idStr;
-
-    if (n === 25 || n === 30) return null; // these do not exist in matrix
-    if (n > 30) return String(n - 2);
-    if (n > 25) return String(n - 1);
-    return String(n);
-  }
-
-  // Create links for co-authors and citations
-  const links = { coauthorLinks: [], citingLinks: [], citedByLinks: [] };
-
-  for (const node of sortedNodes) {
-    const nodeM = toMatrixId(node);
-    if (nodeM === null) continue;
-
-    const coRow = coauthorMatrix?.[nodeM] ?? {};
-    const ciRow = citationMatrix?.[nodeM] ?? {};
-
-    for (const other of sortedNodes) {
-      const otherM = toMatrixId(other);
-      if (otherM === null) continue;
-
-      // coauthor links
-      if (coRow[otherM]) {
-        links.coauthorLinks.push({ sourceID: node, targetID: other });
-      }
-
-      // citing links: node -> other
-      if (ciRow[otherM]) {
-        links.citingLinks.push({ sourceID: node, targetID: other });
-      }
-
-      // cited-by links: other -> node
-      const otherCiRow = citationMatrix?.[otherM] ?? {};
-      if (otherCiRow[nodeM]) {
-        links.citedByLinks.push({ sourceID: node, targetID: other });
-      }
-    }
-  }
-
-  return {
-    nodes,
-    years,
-    links,
-    maxYears,
-    colorScale,
-  };
-}
 
   
   

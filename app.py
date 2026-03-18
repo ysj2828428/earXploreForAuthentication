@@ -96,7 +96,7 @@ def filter_categories(data):
 def get_config(config_path: str) -> dict:
     with open(config_path, "r", encoding="utf-8-sig") as f:
         config = yaml.safe_load(f) or {}
-    # 默认值
+    # default values
     return {
         "database_path": config.get("database-path", "data.csv"),
         "explanations_path": config.get("explanations-path", "explanations.csv"),
@@ -137,7 +137,7 @@ def apply_config_to_globals(cfg: dict):
 # --- Dimension registry ---
 DIMENSIONS = {
     "interaction": {
-        "base_path": "",  # url 前缀
+        "base_path": "",  # url 
         "config_yaml": "earXplore_interaction.yaml",
         "bar_template": "bar-chart.html",
         "table_template": "table-view.html",
@@ -147,7 +147,6 @@ DIMENSIONS = {
     "authentication": {
         "base_path": "/auth",
         "config_yaml": "earXplore_authentication.yaml",
-        # 如果你 auth 的 bar-chart 用单独模板，就填 bar-chart-auth.html；否则也可以复用 bar-chart.html
         "bar_template": "bar-chart-auth.html",
         "table_template": "table-view.html",
         "similarity_template": "similarity.html",

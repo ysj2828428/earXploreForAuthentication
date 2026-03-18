@@ -55,9 +55,7 @@ start-category-filters:
   - Main Author
   - Year
   - Type of Approach
-  - Learning Method
-  - Sensors
-  - Continuous/ One-Time
+  - Continuous / One-Time
   - BAC
 
 special-format-explanations: []

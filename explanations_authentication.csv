@@ -1,7 +1,7 @@
 Column,Explanation
-Main Author,First or corresponding author of the study.
+Main Author,"The main author of the paper, written as in an in-text citation."
 Year,Year in which the study was published.
-Type of Approach,"Category of the authentication approach (e.g., acoustic, physiological, motion-based)."
+Type of Approach,The four types of authentication approaches defined by Röddiger according to different principles.
 No Additional Sensing,Whether authentication is performed without requiring additional sensors beyond standard earable hardware.
 Earphone Type,Type of earable or earphone device used in the study.
 Development Stage,"Maturity level of the system, such as concept, prototype, or deployed system."
